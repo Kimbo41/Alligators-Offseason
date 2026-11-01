@@ -3,7 +3,7 @@
 Trainingsplan mit Trainingslog für die Offseason der Leonberg Alligators (American Football).
 8 Wochen · 3 Einheiten pro Woche · Legoman Powerbuilding 1 & 2
 
-**Zur Seite:** https://DEIN-GITHUB-NAME.github.io/alligators-offseason/
+**Zur Seite:** https://kimbo41.github.io/Alligators-Offseason/
 
 ## Für Spieler: So geht's
 
