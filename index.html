@@ -166,6 +166,7 @@ nav.bar-nav button[aria-pressed="true"]{color:#fff;border-top-color:var(--gold)}
 .set.cr{grid-template-columns:1fr 1fr 52px}
 .rlab{font-weight:600;color:var(--mute);font-size:14px}
 .prog{white-space:nowrap}
+.how .ver{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
 .selwrap{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:10px;padding:8px 12px;margin:10px 0 4px;font-weight:600}
 .selwrap select{min-height:44px;min-width:150px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;font-weight:600;padding:0 10px}
 td small{color:var(--mute)}
@@ -194,6 +195,8 @@ td small{color:var(--mute)}
    Eigene Video-Links: 'Übungsname': 'https://…' – sonst öffnet sich eine YouTube-Suche
    ===================================================================== */
 const VIDEOS = {};
+/* App-Version: bei jeder Änderung hier UND in sw.js (VERSION) erhöhen */
+const APP_VERSION = 'v2';
 
 /* ---------- Bausteine ---------- */
 const L=(st,n,sets,reps,rir,note,unit)=>({k:'lift',st,n,sets,reps:String(reps),rir:rir!=null?String(rir):'',note:note||'',unit:unit||'Wdh.'});
@@ -549,7 +552,20 @@ function renderProf(){
     <p><b>Ablauf jeder Einheit:</b> Warm-up → Mainlift → Skills → Hypertrophie.</p>
     <p><b>RIR</b> = Wiederholungen in Reserve. RIR 2 heißt: aufhören, wenn noch 2 saubere Wiederholungen gegangen wären. RIR 0 heißt: so viele wie möglich.</p>
     <p><b>Bedienung:</b> kg und Wdh. eintragen und den Kreis abhaken. Wer nichts einträgt, übernimmt beim Abhaken den Vorschlag (letztes Gewicht). ▶ öffnet ein Video zur Übung.</p>
+    <p class="small ver" id="verLine">Version ${APP_VERSION}</p>
   </div>`;
+  showSwVersion();
+}
+
+/* Version des Offline-Speichers (Service Worker) anzeigen */
+async function showSwVersion(){
+  try{
+    if(!window.caches) return;
+    const keys=(await caches.keys()).filter(k=>k.startsWith('alligators-offseason-'));
+    const el=document.getElementById('verLine'); if(!el||!keys.length) return;
+    const sw=keys.sort().pop().replace('alligators-offseason-','');
+    el.textContent='Version '+APP_VERSION+(sw===APP_VERSION?' · offline gespeichert':' · Offline-Speicher '+sw+' (App schließen und neu öffnen)');
+  }catch(e){}
 }
 
 /* ---------- Events ---------- */
