@@ -166,6 +166,14 @@ nav.bar-nav button[aria-pressed="true"]{color:#fff;border-top-color:var(--gold)}
 .set.cr{grid-template-columns:1fr 1fr 52px}
 .rlab{font-weight:600;color:var(--mute);font-size:14px}
 .prog{white-space:nowrap}
+.exppanel{margin-top:10px;border-left:5px solid var(--gold)}
+.exppanel h3{margin:0 0 4px}
+.exppanel textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;line-height:1.4;padding:10px 12px;resize:vertical}
+.exppanel textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.exprow{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#sentMsg{margin-top:10px}
 .field select{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;font-weight:500;padding:0 12px;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 50%);background-position:calc(100% - 20px) 21px,calc(100% - 14px) 21px;background-size:6px 6px;background-repeat:no-repeat;padding-right:36px;text-overflow:ellipsis}
 .pend p{margin:0 0 10px;line-height:1.45}
 .pend .btn{margin-top:4px}
@@ -198,7 +206,7 @@ td small{color:var(--mute)}
    Phase 2 (Woche 9–16) und Phase 3 (Woche 17–24): noch nicht ausgearbeitet
    ===================================================================== */
 /* App-Version: bei jeder Änderung hier UND in sw.js (VERSION) erhöhen */
-const APP_VERSION = 'v5';
+const APP_VERSION = 'v6';
 
 /* ---------- Video-Links aus der Excel-Datei ---------- */
 const YT_WU_LEG='https://www.youtube.com/watch?v=REMBaXHShL4&list=PLTjAzAtC2i0k&index=1';
@@ -565,7 +573,15 @@ function renderHist(){
   });
   if(!anyL) h+='<div class="empty">Noch keine Sätze der Mainlifts (bis 12 Wdh.).</div>';
   h+='<p class="small">Schätzung nach Epley, nur zum Vergleich von Woche zu Woche. P1 W3 = Phase 1, Woche 3.</p></div>';
-  h+=`<button class="btn" id="exp">Log als CSV an die Coaches senden</button><p class="small">Auf dem Handy öffnet sich das Teilen-Menü (z. B. WhatsApp oder Mail), sonst wird die Datei gespeichert. Die Datei enthält alle Phasen, Name, Trikotnummer und Position und lässt sich in Excel oder Google Sheets öffnen.</p>`;
+  h+=`<button class="btn" id="exp" aria-expanded="false" aria-controls="expPanel">Log als CSV an die Coaches senden</button>
+  <div class="card exppanel" id="expPanel" hidden>
+    <h3>Nachricht an den Coach</h3>
+    <p class="small" style="margin:0 0 8px">Fragen, Schmerzen, Wünsche oder Anmerkungen zum Plan. Die Nachricht wird mit Datum in die CSV geschrieben. Das Feld kann auch leer bleiben.</p>
+    <label class="field" style="margin-bottom:10px"><span class="sr">Nachricht an den Coach</span><textarea id="coachMsg" rows="5" placeholder="z. B. Beim Backsquat zwickt das linke Knie. Soll ich das Gewicht reduzieren?">${esc(state.coachDraft||'')}</textarea></label>
+    <div class="exprow"><button class="btn" id="expSend">CSV senden</button><button class="btn ghost" id="expCancel">Abbrechen</button></div>
+    ${(state.coachMsgs||[]).length?`<p class="small" style="margin:10px 0 0">Bisher gesendete Nachrichten: ${(state.coachMsgs||[]).length}. Alle sind in der CSV enthalten.</p>`:''}
+  </div>
+  <p class="small">Auf dem Handy öffnet sich das Teilen-Menü (z. B. WhatsApp oder Mail), sonst wird die Datei gespeichert. Die Datei enthält alle Phasen, Name, Trikotnummer und Position und lässt sich in Excel oder Google Sheets öffnen.</p>`;
   h+=storageOk?'<p class="small">Deine Einträge bleiben nur auf diesem Gerät und in diesem Browser gespeichert.</p>':'<p class="nudge warnbox">Achtung: In dieser Ansicht können keine Daten gespeichert werden. Öffne die Seite bitte in Safari oder Chrome statt in der Vorschau.</p>';
   document.getElementById('main').innerHTML=h;
 }
@@ -574,6 +590,9 @@ function buildCsv(){
   const p=state.profile;
   const rows=[['Name','Trikotnummer','Position','Datum','Phase','Woche (Phase)','Gesamtwoche','Plan','Tag','Einheit','Station','Übung','Satz/Runde','Gewicht (kg)','Wert','Einheit Wert','Notiz zur Übung','Körperbefinden (1-5)','Notiz zur Einheit']];
   const out=[];
+  (state.coachMsgs||[]).forEach((m,i)=>{
+    rows.push([p.name,p.num,p.pos,m.date,PHASES[phaseOf(m.w||1)-1].name,relWeek(m.w||1),m.w||'','','','','Nachricht an den Coach','Nachricht an den Coach',i+1,'','','','','',m.text]);
+  });
   const base=(w,d)=>{const sk=SK(w,d);return [p.name,p.num,p.pos,state.date[sk]||'',PHASES[phaseOf(w)-1].name,relWeek(w),w,BLOCK_NAME[w]||'',DAYS[d],PLAN[w]&&PLAN[w][d]?PLAN[w][d].t:''];};
   const tail=(w,d,note)=>{const sk=SK(w,d);return [note||'',state.feel[sk]!=null?state.feel[sk]:'',state.note[sk]||''];};
   const used=new Set();
@@ -606,13 +625,17 @@ async function exportCsv(){
   const csv=buildCsv(), fn=csvName();
   try{
     const dl=window.claude&&claude.use?await claude.use('downloads'):null;
-    if(dl){ await dl.save({filename:fn,data:csv}); return; }
+    if(dl){ await dl.save({filename:fn,data:csv}); return true; }
   }catch(e){}
   try{
     const file=new File([csv],fn,{type:'text/csv'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Alligators Trainingslog'}); return; }
-  }catch(e){ if(e&&e.name==='AbortError') return; }
-  try{ const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download=fn; document.body.appendChild(a); a.click(); a.remove(); }catch(e){}
+    if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Alligators Trainingslog'}); return true; }
+  }catch(e){ if(e&&e.name==='AbortError') return false; }
+  try{ const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download=fn; document.body.appendChild(a); a.click(); a.remove(); return true; }catch(e){ return false; }
+}
+function rerenderHist(sent){
+  if(tab!=='hist') return; renderHist();
+  const b=document.getElementById('exp'); if(sent&&b){ b.insertAdjacentHTML('afterend','<p class="nudge info" id="sentMsg">CSV erstellt. Bitte im Teilen-Menü an den Coach schicken.</p>'); }
 }
 
 /* ---------- Profil ---------- */
@@ -684,6 +707,7 @@ const whoUpd=()=>{document.getElementById('whoLine').textContent=whoText();};
 mainEl.addEventListener('input',ev=>{
   const t=ev.target;
   if(t.id==='note'){state.note[SK(W,D)]=t.value;save();return;}
+  if(t.id==='coachMsg'){state.coachDraft=t.value;save();return;}
   if(t.id==='pName'){state.profile.name=t.value;save();whoUpd();return;}
   if(t.id==='pNum'){state.profile.num=t.value.replace(/[^0-9]/g,'');if(t.value!==state.profile.num)t.value=state.profile.num;save();whoUpd();return;}
   if(t.id==='pPosOther'){state.profile.pos=t.value;save();whoUpd();return;}
@@ -734,7 +758,26 @@ mainEl.addEventListener('click',ev=>{
     document.getElementById('fsel').textContent=cur?cur+' · '+FEEL[cur-1]:'';
     save(); return;
   }
-  if(ev.target.id==='exp') exportCsv();
+  if(ev.target.id==='exp'){
+    const pn=document.getElementById('expPanel'), b=document.getElementById('exp');
+    const sm=document.getElementById('sentMsg'); if(sm) sm.remove();
+    pn.hidden=!pn.hidden; b.setAttribute('aria-expanded',String(!pn.hidden));
+    if(!pn.hidden){ const t=document.getElementById('coachMsg'); t.focus(); pn.scrollIntoView({block:'nearest'}); }
+    return;
+  }
+  if(ev.target.id==='expCancel'){ document.getElementById('expPanel').hidden=true; document.getElementById('exp').setAttribute('aria-expanded','false'); return; }
+  if(ev.target.id==='expSend'){
+    const text=(document.getElementById('coachMsg').value||'').trim();
+    state.coachMsgs=state.coachMsgs||[];
+    let added=false;
+    if(text){ state.coachMsgs.push({date:today(),w:W,text}); added=true; }
+    state.coachDraft=''; save();
+    exportCsv().then(ok=>{
+      if(ok===false&&added){ const m=state.coachMsgs.pop(); state.coachDraft=m.text; save(); }
+      rerenderHist(ok!==false);
+    });
+    return;
+  }
 });
 render();
 
