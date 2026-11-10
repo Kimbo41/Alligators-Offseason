@@ -166,6 +166,9 @@ nav.bar-nav button[aria-pressed="true"]{color:#fff;border-top-color:var(--gold)}
 .set.cr{grid-template-columns:1fr 1fr 52px}
 .rlab{font-weight:600;color:var(--mute);font-size:14px}
 .prog{white-space:nowrap}
+.field select{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;font-weight:500;padding:0 12px;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 50%);background-position:calc(100% - 20px) 21px,calc(100% - 14px) 21px;background-size:6px 6px;background-repeat:no-repeat;padding-right:36px;text-overflow:ellipsis}
+.pend p{margin:0 0 10px;line-height:1.45}
+.pend .btn{margin-top:4px}
 .how .ver{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
 .selwrap{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:10px;padding:8px 12px;margin:10px 0 4px;font-weight:600}
 .selwrap select{min-height:44px;min-width:150px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;font-weight:600;padding:0 10px}
@@ -190,110 +193,150 @@ td small{color:var(--mute)}
 
 <script>
 /* =====================================================================
-   Leonberg Alligators · Offseason Team-Plan (Legoman Powerbuilding, 8 Wochen)
-   Inhalt 1:1 aus GymPlan_Seniors.xlsx
-   Eigene Video-Links: 'Übungsname': 'https://…' – sonst öffnet sich eine YouTube-Suche
+   Leonberg Alligators · Offseason Team-Plan · 24 Wochen in 3 Phasen
+   Phase 1 (Woche 1–8): Legoman Powerbuilding – 1:1 aus GymPlan_Seniors.xlsx
+   Phase 2 (Woche 9–16) und Phase 3 (Woche 17–24): noch nicht ausgearbeitet
    ===================================================================== */
-const VIDEOS = {};
 /* App-Version: bei jeder Änderung hier UND in sw.js (VERSION) erhöhen */
-const APP_VERSION = 'v2';
+const APP_VERSION = 'v3';
 
-/* ---------- Bausteine ---------- */
-const L=(st,n,sets,reps,rir,note,unit)=>({k:'lift',st,n,sets,reps:String(reps),rir:rir!=null?String(rir):'',note:note||'',unit:unit||'Wdh.'});
+/* ---------- Video-Links aus der Excel-Datei ---------- */
+const YT_WU_LEG='https://www.youtube.com/watch?v=REMBaXHShL4&list=PLTjAzAtC2i0k&index=1';
+const YT_WU_UP='https://www.youtube.com/shorts/Sh2A_24FJjM';
+const YT_LEGPRESS='https://www.youtube.com/watch?v=iRMCAtQDKis&list=PLTjAzAtC2i0k&index=7';
+const YT={
+  backsquat:'https://www.youtube.com/watch?v=Mo0LE2S06-s&list=PLTjAzAtC2i0k&index=2',
+  front:'https://www.youtube.com/watch?v=DqObzwFBH4w&list=PLTjAzAtC2i0k&index=3',
+  lateral:'https://www.youtube.com/watch?v=LHZswrLy3qw&list=PLTjAzAtC2i0k&index=4',
+  pistol:'https://www.youtube.com/watch?v=VPDGZmO8yL8&list=PLTjAzAtC2i0k&index=5',
+  bstance:'https://www.youtube.com/watch?v=7XAKsTD6bU8&list=PLTjAzAtC2i0k&index=6',
+  curtsy:'https://www.youtube.com/shorts/yuHDVVVP1ZY',
+  sq2push:'https://www.youtube.com/watch?v=WTxunljlL5w&list=PLTjAzAtC2i0k&index=9',
+  hamhold:'https://www.youtube.com/watch?v=Fi-144MVrao&list=PLTjAzAtC2i0k&index=9',
+  ffe:'https://www.youtube.com/watch?v=sp0Jnmo6_kM&list=PLTjAzAtC2i0k&index=10',
+  bench:'https://www.youtube.com/shorts/_40ywqwdMKM',
+  row:'https://www.youtube.com/shorts/VTN0C5F7oF0',
+  coil:'https://www.youtube.com/shorts/I9lBHdKrIqU',
+  kneelrow:'https://www.youtube.com/shorts/QfTKYpeKVgc',
+  rezi:'https://www.youtube.com/shorts/nVCxAbBUBSY',
+  rezi2:'https://www.youtube.com/shorts/CcFfSwIHThg',
+  lat:'https://www.youtube.com/shorts/XaGlFRpCngk',
+  dips:'https://www.youtube.com/shorts/1TUzy9LBJMA',
+  straddle:'https://www.youtube.com/shorts/tCm3PJIg3_s',
+  corerot:'https://www.youtube.com/shorts/ro3bgMu-d9Y',
+  latpress:'https://www.youtube.com/shorts/ybHw36WONLI'
+};
+
+/* ---------- Bausteine ----------
+   Jede Übung wird über ihren Namen gespeichert (nicht über die Position).
+   So bleiben Einträge erhalten, wenn Übungen ergänzt oder umsortiert werden. */
+const L=(st,n,sets,reps,rir,note,v,unit)=>({k:'lift',st,n,sets,reps:String(reps),rir:rir!=null?String(rir):'',note:note||'',v:v||'',unit:unit||'Wdh.'});
 const WU=(items)=>({k:'warm',st:'Warm-up',n:'Warm-up',rounds:2,items});
 const ZI=(title,items)=>({k:'circ',st:'4-6 Runden Zirkel',n:title,rounds:6,items});
 const CA=()=>[
   {k:'cardio',st:'Alternative: Cardio',n:'Warm-up (Cardio)',sets:1,unit:'Min.',ph:'10',tgt:'10 Min. · Easy Tempo',note:'z. B. easy Joggen'},
-  {k:'cardio',st:'Alternative: Cardio',n:'Intervalle',sets:6,unit:'Sek.',ph:'60',tgt:'1 Min. Belastung · 30 s Pause · RIR 0',note:'10 Min. (ca. 6 Runden) Intervall'},
+  {k:'cardio',st:'Alternative: Cardio',n:'Intervalle',sets:6,unit:'Sek.',ph:'45',tgt:'45 s Belastung · 45 s Pause · RIR 0',note:'10 Min. (ca. 6 Runden) Intervall'},
   {k:'cardio',st:'Alternative: Cardio',n:'Cool Down',sets:1,unit:'Min.',ph:'10',tgt:'10 Min.',note:'easy Jogging oder Walking'}];
 
-const WU_LEG_A=WU([['Deep Squat Sit','30 s','Im Wechsel Knie über Zehen schieben'],['Cossack Squat','10 je Seite',''],['Split Squat Jumps','10','Back Foot elevated'],['Pogos','15','']]);
-const WU_LEG_B=WU([['Deep Squat Sit','30 s','Im Wechsel Knie über Zehen schieben'],['Cossack Squat','10 je Seite',''],['Split Squat Jumps','10','enger Stand, Knie weit vorne'],['Pogos','15','']]);
-const WU_UP=WU([['Katze-Kuh','10',''],['Kettlebell Scapula Press','8','Alternativ mit Dumbbell'],['Scapula Pull','8','']]);
+/* Warm-up-Einträge: [Name, Wdh., Hinweis, Video] */
+const WU_LEG_A=WU([['Deep Squat Sit','10 je Seite','Im Wechsel Knie über Zehen schieben',YT_WU_LEG],['Cossack Squat','10 je Seite','Knie vorschieben',YT_WU_LEG],['Split Squat Jumps','10','kleine Sprünge in tiefer Position',YT_WU_LEG],['Pogos','15','kurzer Bodenkontakt',YT_WU_LEG]]);
+const WU_LEG_B=WU([['Deep Squat Sit','10 je Seite','Im Wechsel Knie über Zehen schieben',YT_WU_LEG],['Cossack Squat','10 je Seite','Knie vorschieben',YT_WU_LEG],['Split Squat Jumps','10','enger Stand, Knie weit vorne',YT_WU_LEG],['Pogos','15','kurzer Bodenkontakt',YT_WU_LEG]]);
+const WU_LEG_D=WU([['Deep Squat Sit','10 je Seite','Im Wechsel Knie über Zehen schieben',YT_WU_LEG],['Cossack Squat','10 je Seite','Knie vorschieben',YT_WU_LEG],['Split Squat Jumps','10','kleine Sprünge in tiefer Position',YT_WU_LEG],['Pogos','15','kurzer Bodenkontakt',YT_WU_LEG]]);
+const WU_UP=WU([['Katze-Kuh','10','',YT_WU_UP],['Kettlebell Scapula Press','8','Alternativ mit Dumbbell',YT_WU_UP],['Scapula Pull','8','',YT_WU_UP]]);
 
+/* Zirkel-Stationen: [Name, Belastung, Pause, Hinweis, Video] */
 const ZI_KB=ZI('Power Kettlebell Zirkel',[
-  ['B-Stance Kettlebell Swing','30 s','40-60 s','Gewicht immer über Standfuß halten'],
-  ['Floor Press reziprok','30 s','40-60 s','im Glute Bridge Hold'],
-  ['Weighted Cossack Squat','30 s','40-60 s','Knie so weit wie möglich vorschieben'],
-  ['Vorgebeugtes Rudern reziprok','30 s','40-60 s','Oberkörper parallel zum Boden'],
-  ['Deep Squat Shoulder Press reziprok','30 s','60 s','Oberkörper rotiert komplett mit']]);
-const ZI_DB=ZI('Power Dumbbell Zirkel',[
-  ['B-Stance Dumbbell Deadlift','30 s','40-60 s','Gewicht immer über Standfuß halten'],
-  ['Liegestütz','30 s','40-60 s','im Glute Bridge Hold'],
-  ['Goblet Squat','30 s','40-60 s','Knie so weit wie möglich vorschieben'],
-  ['Vorgebeugtes Rudern reziprok','30 s','40-60 s','Oberkörper parallel zum Boden'],
-  ['Rotational Shoulder Press sitzend','30 s','60 s','einarmig; Oberkörper rotiert komplett mit']]);
+  ['B-Stance Kettlebell Swing','30 s','40-60 s','Gewicht immer über Standfuß halten','https://www.youtube.com/shorts/XmM5ATfWB0E'],
+  ['Floor Press reziprok','30 s','40-60 s','im Glute Bridge Hold','https://www.youtube.com/shorts/gCVNgReCkmw'],
+  ['Weighted Cossack Squat','30 s','40-60 s','Knie so weit wie möglich vorschieben','https://www.youtube.com/shorts/J87bPGxEY4s'],
+  ['Vorgebeugtes Rudern reziprok','30 s','40-60 s','Oberkörper parallel zum Boden','https://www.youtube.com/shorts/0Pz65dfeCe8'],
+  ['Deep Squat Shoulder Press reziprok','30 s','60 s','Oberkörper rotiert komplett mit','https://www.youtube.com/shorts/qTJiA0UeKic']]);
+const ZI_DB_ST=(pushNote)=>ZI('Power Dumbbell Zirkel',[
+  ['B-Stance Dumbbell Deadlift','30 s','40-60 s','Gewicht immer über Standfuß halten','https://www.youtube.com/shorts/Z1pvHbs99cQ'],
+  ['Liegestütz','30 s','40-60 s',pushNote,'https://www.youtube.com/shorts/0qTQOFf6v1Q'],
+  ['Goblet Squat','30 s','40-60 s','Knie so weit wie möglich vorschieben','https://www.youtube.com/shorts/_8PYMTCgwKM'],
+  ['Vorgebeugtes Rudern reziprok','30 s','40-60 s','Oberkörper parallel zum Boden','https://www.youtube.com/shorts/0Pz65dfeCe8'],
+  ['Rotational Shoulder Press sitzend','30 s','60 s','einarmig; Oberkörper rotiert komplett mit','https://www.youtube.com/shorts/WE4PFxsCS40']]);
 
 const DAY=(t,desc,ex)=>({t,desc,ex});
 /* Legoman Powerbuilding 1 – Woche 1 und 3 (a) */
 const P1A=[
  DAY('Lower Body – Strong Hips','Tag 1a',[WU_LEG_A,
-   L('Mainlift','Backsquat',2,6,2,'Lift heavy!!!'),
-   L('Skills','Lateral Lunge Yielding Drop and Catch',2,8,'3-4','Knie immer über Fuß lassen, Hüfte schiebt raus'),
-   L('Hypertrophie','Romanian Deadlift',2,'6-8','0-1','Hinge the Hip'),
-   L('Hypertrophie','Leg Press',2,6,'0-1'),
-   L('Hypertrophie','Beinbeuger',2,8,'0-1','Nur machen, wenn noch Power')]),
+   L('Mainlift','Backsquat',2,6,2,'Lift heavy!!!',YT.backsquat),
+   L('Skills','Lateral Lunge Yielding Drop and Catch',2,8,'3-4','Knie immer über Fuß lassen, Hüfte schiebt raus',YT.lateral),
+   L('Hypertrophie','Landmine B-Stance Deadlift',2,'6-8','0-1','Ipsilateral, Hinge the Hip',YT.bstance),
+   L('Hypertrophie','Leg Press',2,6,'0-1','',YT_LEGPRESS),
+   L('Hypertrophie','Beinbeuger',2,8,'0-1','Nur machen, wenn noch Power',YT_LEGPRESS)]),
  DAY('Upper Body – Push it','Tag 2a',[WU_UP,
-   L('Mainlift','Bench Press',2,6,2),
-   L('Skills','Landmine Rotational Push',3,8,3),
-   L('Hypertrophie','Dumbbell Pos. Bench reziprok',2,8,1),
-   L('Hypertrophie','Lat-Zug eng',2,8,'0-1','Full Stretch, Schulterblätter gehen mit'),
-   L('Hypertrophie','Dips',2,'Alle',0),
-   L('Hypertrophie','Straddle',2,6,'0-1','HEAVY!!! Hüfte bleibt stabil')]),
+   L('Mainlift','Bench Press',2,6,2,'',YT.bench),
+   L('Skills','Landmine Coil Press',3,8,3,'',YT.coil),
+   L('Hypertrophie','Reziproke Kombi',2,8,1,'Supersatz: Dumbbell Pos. Bankdrücken + vorgebeugtes Rudern',YT.rezi),
+   L('Hypertrophie','Lat-Zug eng',2,8,'0-1','Full Stretch, Schulterblätter gehen mit',YT.lat),
+   L('Hypertrophie','Dips',2,'Alle',0,'',YT.dips),
+   L('Hypertrophie','Straddle',2,6,'0-1','HEAVY!!! Hüfte bleibt stabil',YT.straddle)]),
  DAY('Kraftzirkel oder Cardio','Tag 3',[ZI_KB,...CA()])];
 /* Legoman Powerbuilding 1 – Woche 2 und 4 (b) */
 const P1B=[
  DAY('Lower Body – Strong Legs','Tag 1b',[WU_LEG_B,
-   L('Mainlift','Frontsquat',2,6,2,'Gerne mit Keil unter den Füßen'),
-   L('Skills','Sit down Pistol Squat',2,8,3,'Langsam runter, explosiv hoch'),
-   L('Hypertrophie','Romanian Deadlift',2,'6-8','0-1','Hinge the Hip'),
-   L('Hypertrophie','Leg Press',2,6,'0-1'),
-   L('Hypertrophie','Beinstrecker',2,8,'0-1','Nur machen, wenn noch Power')]),
+   L('Mainlift','Front- / Safety-Bar Squat',2,6,2,'Gerne mit Keil unter den Füßen',YT.front),
+   L('Skills','Sit down Pistol Squat',2,8,3,'Langsam runter, explosiv hoch',YT.pistol),
+   L('Hypertrophie','Landmine B-Stance Deadlift',2,'6-8','0-1','Ipsilateral, Hinge the Hip',YT.bstance),
+   L('Hypertrophie','Leg Press',2,6,'0-1','',YT_LEGPRESS),
+   L('Hypertrophie','Beinstrecker',2,8,'0-1','Nur machen, wenn noch Power',YT_LEGPRESS)]),
  DAY('Upper Body – Pull it','Tag 2b',[WU_UP,
-   L('Mainlift','Vorgebeugtes Rudern Langhantel',2,6,1),
-   L('Skills','Kneeling Rotational Row',3,8,2,'Single Arm Row, contralateral'),
-   L('Hypertrophie','Dumbbell Pos. Bench reziprok',2,8,1),
-   L('Hypertrophie','Lat-Zug eng',2,8,'0-1','Full Stretch, Schulterblätter gehen mit'),
-   L('Hypertrophie','Dips',2,'Alle',0),
-   L('Hypertrophie','Straddle',2,6,'0-1','HEAVY!!! Hüfte bleibt stabil')]),
- DAY('Kraftzirkel oder Cardio','Tag 3',[ZI_DB,...CA()])];
+   L('Mainlift','Vorgebeugtes Rudern Langhantel',2,6,1,'',YT.row),
+   L('Skills','Kneeling Rotational Row',3,8,2,'Single Arm Row, contralateral',YT.kneelrow),
+   L('Hypertrophie','Dumbbell Pos. Bench reziprok',2,8,1,'',YT.rezi),
+   L('Hypertrophie','Lat-Zug eng',2,8,'0-1','Full Stretch, Schulterblätter gehen mit',YT.lat),
+   L('Hypertrophie','Dips',2,'Alle',0,'',YT.dips),
+   L('Hypertrophie','Straddle',2,6,'0-1','HEAVY!!! Hüfte bleibt stabil',YT.straddle)]),
+ DAY('Kraftzirkel oder Cardio','Tag 3',[ZI_DB_ST('im Glute Bridge Hold'),...CA()])];
 /* Legoman Powerbuilding 2 – Woche 5 und 7 (a) */
 const P2A=[
  DAY('Lower Body – Strong Hips','Tag 1a',[WU_LEG_A,
-   L('Mainlift','B-Stance Landmine RDL ipsilateral',2,6,2,'Lift heavy!!!'),
-   L('Skills','Landmine Reverse Curtsy Lunge',2,8,3,'Schnell nach hinten fallen lassen und CATCH!'),
-   L('Skills','Lateral Lunge Yielding Drop and Catch',2,8,3,'Knie immer über Fuß lassen, Hüfte schiebt raus'),
-   L('Hypertrophie','Single Leg Hamstring Hold',2,'30-40','0-1','Glute Bridge, aber Füße weiter entfernt','Sek.'),
-   L('Hypertrophie','Leg Press',2,6,'0-1')]),
+   L('Mainlift','Deadlift',2,6,1,'Lift heavy!!!'),
+   L('Skills','Landmine Reverse Curtsy Lunge',2,8,2,'Schnell nach hinten fallen lassen und CATCH!',YT.curtsy),
+   L('Skills','Lateral Lunge Yielding Drop and Catch',2,8,2,'Knie immer über Fuß lassen, Hüfte schiebt raus',YT.lateral),
+   L('Hypertrophie','Single Leg Hamstring Hold',2,'30-40','0-1','Glute Bridge, aber Füße weiter entfernt',YT.hamhold,'Sek.'),
+   L('Hypertrophie','Leg Press',2,6,'0-1','',YT_LEGPRESS)]),
  DAY('Upper Body – Push it','Tag 2a',[WU_UP,
-   L('Mainlift','Bench Press',2,6,2),
+   L('Mainlift','Bench Press',2,6,2,'',YT.bench),
    L('Skills','Landmine Rotational Pull-Push',2,8,3),
-   L('Skills','Landmine Core Rotation',2,8,3,'Fallen lassen und catchen'),
-   L('Hypertrophie','Dumbbell Pos. Bench reziprok',2,8,1),
-   L('Hypertrophie','Lat-Zug eng',2,8,'0-1','Full Stretch, Schulterblätter gehen mit'),
-   L('Hypertrophie','Dips',2,'Alle',0)]),
+   L('Skills','Landmine Core Rotation',2,8,3,'Fallen lassen und catchen',YT.corerot),
+   L('Hypertrophie','Dumbbell Pos. Bench reziprok',2,8,1,'',YT.rezi2),
+   L('Hypertrophie','Lat-Zug eng',2,8,'0-1','Full Stretch, Schulterblätter gehen mit',YT.lat),
+   L('Hypertrophie','Dips',2,'Alle',0,'',YT.dips)]),
  DAY('Kraftzirkel oder Cardio','Tag 3',[ZI_KB,...CA()])];
 /* Legoman Powerbuilding 2 – Woche 6 und 8 (b) */
 const P2B=[
- DAY('Lower Body – Strong Legs','Tag 1b',[WU_LEG_B,
-   L('Mainlift','Squat',2,6,2,'Egal ob Front- oder Backsquat'),
-   L('Skills','Sit down Pistol Squat',2,8,3,'Langsam runter, explosiv hoch'),
-   L('Skills','Landmine Squat to Push',2,8,3,'Fast Push!'),
-   L('Hypertrophie','FFE Split Squat Iso Hold',2,'6-8','0-1','Front Foot only on Forefoot; Knie vorschieben'),
-   L('Hypertrophie','Leg Press',2,6,'0-1'),
-   L('Hypertrophie','Beinstrecker',2,8,'0-1','Nur machen, wenn noch Power')]),
+ DAY('Lower Body – Strong Legs','Tag 1b',[WU_LEG_D,
+   L('Mainlift','Squat',2,6,1,'Egal ob Front- oder Backsquat',YT.backsquat),
+   L('Skills','Sit down Pistol Squat',2,8,2,'Langsam runter, explosiv hoch',YT.pistol),
+   L('Skills','Landmine Squat to Push',2,8,2,'Fast Push!',YT.sq2push),
+   L('Hypertrophie','FFE Split Squat Iso Hold',2,'30-40','0-1','Front Foot only on Forefoot; Knie vorschieben',YT.ffe,'Sek.'),
+   L('Hypertrophie','Leg Press',2,6,'0-1','',YT_LEGPRESS),
+   L('Hypertrophie','Beinstrecker',2,8,'0-1','Nur machen, wenn noch Power',YT_LEGPRESS)]),
  DAY('Upper Body – Pull it','Tag 2b',[WU_UP,
-   L('Mainlift','Vorgebeugtes Rudern Langhantel',2,6,1),
-   L('Skills','Kneeling Rotational Row',2,8,2,'Single Arm Row, contralateral'),
-   L('Skills','Single Arm Lat Pull + Shoulder Press',2,8,2,'Reziprok – 1 Arm Pull, der andere Push'),
-   L('Hypertrophie','Dumbbell Pos. Bench reziprok',2,8,1),
-   L('Hypertrophie','Dips',2,'Alle',0),
-   L('Hypertrophie','Straddle',2,6,'0-1','HEAVY!!! Hüfte bleibt stabil')]),
- DAY('Kraftzirkel oder Cardio','Tag 3',[ZI_DB,...CA()])];
+   L('Mainlift','Vorgebeugtes Rudern Langhantel',2,6,1,'',YT.row),
+   L('Skills','Kneeling Rotational Row',2,8,2,'Single Arm Row, contralateral',YT.kneelrow),
+   L('Skills','Single Arm Lat Pull + Shoulder Press',2,8,2,'Reziprok – 1 Arm Pull, der andere Push',YT.latpress),
+   L('Hypertrophie','Dumbbell Pos. Bench reziprok',2,8,1,'',YT.rezi),
+   L('Hypertrophie','Dips',2,'Alle',0,'',YT.dips),
+   L('Hypertrophie','Straddle',2,6,'0-1','HEAVY!!! Hüfte bleibt stabil',YT.straddle)]),
+ DAY('Kraftzirkel oder Cardio','Tag 3',[ZI_DB_ST(''),...CA()])];
 
+/* ---------- 24 Wochen, 3 Phasen ----------
+   Neue Phase einpflegen: Wochen in PLAN eintragen (9–16 bzw. 17–24), Name in PHASES setzen. */
+const PHASES=[
+  {id:1,name:'Phase 1',sub:'Legoman Powerbuilding',from:1},
+  {id:2,name:'Phase 2',sub:'in Planung',from:9},
+  {id:3,name:'Phase 3',sub:'in Planung',from:17}];
 const PLAN={1:P1A,2:P1B,3:P1A,4:P1B,5:P2A,6:P2B,7:P2A,8:P2B};
-const PLAN_NAME=w=>w<=4?'Legoman Powerbuilding 1':'Legoman Powerbuilding 2';
-const LIFTS=['Backsquat','Frontsquat','Squat','Bench Press','Vorgebeugtes Rudern Langhantel'];
+const BLOCK_NAME={1:'Legoman Powerbuilding 1',2:'Legoman Powerbuilding 1',3:'Legoman Powerbuilding 1',4:'Legoman Powerbuilding 1',5:'Legoman Powerbuilding 2',6:'Legoman Powerbuilding 2',7:'Legoman Powerbuilding 2',8:'Legoman Powerbuilding 2'};
+const phaseOf=w=>w>=17?3:w>=9?2:1;
+const phaseReady=p=>{const f=PHASES[p-1].from; for(let w=f;w<f+8;w++) if(PLAN[w]) return true; return false;};
+const relWeek=w=>w-PHASES[phaseOf(w)-1].from+1;
+const LIFTS=['Backsquat','Front- / Safety-Bar Squat','Squat','Deadlift','Bench Press','Vorgebeugtes Rudern Langhantel'];
 
 const KEY='alligators-team-legoman-v1';
 const DAYS=['Mo','Do','Sa'];
@@ -301,17 +344,43 @@ const FEEL=['Schlecht','Eher schlecht','Okay','Gut','Sehr gut'];
 const POS=['Quarterback (QB)','Running Back (RB)','Fullback (FB)','Wide Receiver (WR)','Tight End (TE)','Offensive Line (OL)','Defensive Line (DL)','Linebacker (LB)','Cornerback (CB)','Safety (S)','Kicker / Punter (K/P)','Long Snapper (LS)'];
 function lsGet(){try{return localStorage.getItem(KEY)}catch(e){return null}}
 function lsSet(v){try{localStorage.setItem(KEY,v)}catch(e){}}
-const defaults=()=>({sets:{},ckg:{},feel:{},note:{},exnote:{},date:{},profile:{name:'',num:'',pos:''},ui:{w:1,d:0},ts:0});
+const defaults=()=>({sv:3,sets:{},ckg:{},feel:{},note:{},exnote:{},date:{},sat:{},phase:1,profile:{name:'',num:'',pos:''},ui:{w:1,d:0},ts:0});
 let state=defaults();
-try{const raw=lsGet(); if(raw){const p=JSON.parse(raw); if(p&&p.sets){state=Object.assign(defaults(),p); state.profile=Object.assign(defaults().profile,p.profile||{});}}}catch(e){}
+try{const raw=lsGet(); if(raw){const p=JSON.parse(raw); if(p&&p.sets){state=Object.assign(defaults(),p); state.profile=Object.assign(defaults().profile,p.profile||{}); if(!p.sv) state.sv=2;}}}catch(e){}
+
+/* ---------- Umzug alter Einträge (bis v2: Speicherung nach Position) ---------- */
+const OLD_V2={
+ A:[['Warm-up','Backsquat','Lateral Lunge Yielding Drop and Catch','Romanian Deadlift','Leg Press','Beinbeuger'],['Warm-up','Bench Press','Landmine Rotational Push','Dumbbell Pos. Bench reziprok','Lat-Zug eng','Dips','Straddle'],['Power Kettlebell Zirkel','Warm-up (Cardio)','Intervalle','Cool Down']],
+ B:[['Warm-up','Frontsquat','Sit down Pistol Squat','Romanian Deadlift','Leg Press','Beinstrecker'],['Warm-up','Vorgebeugtes Rudern Langhantel','Kneeling Rotational Row','Dumbbell Pos. Bench reziprok','Lat-Zug eng','Dips','Straddle'],['Power Dumbbell Zirkel','Warm-up (Cardio)','Intervalle','Cool Down']],
+ C:[['Warm-up','B-Stance Landmine RDL ipsilateral','Landmine Reverse Curtsy Lunge','Lateral Lunge Yielding Drop and Catch','Single Leg Hamstring Hold','Leg Press'],['Warm-up','Bench Press','Landmine Rotational Pull-Push','Landmine Core Rotation','Dumbbell Pos. Bench reziprok','Lat-Zug eng','Dips'],['Power Kettlebell Zirkel','Warm-up (Cardio)','Intervalle','Cool Down']],
+ D:[['Warm-up','Squat','Sit down Pistol Squat','Landmine Squat to Push','FFE Split Squat Iso Hold','Leg Press','Beinstrecker'],['Warm-up','Vorgebeugtes Rudern Langhantel','Kneeling Rotational Row','Single Arm Lat Pull + Shoulder Press','Dumbbell Pos. Bench reziprok','Dips','Straddle'],['Power Dumbbell Zirkel','Warm-up (Cardio)','Intervalle','Cool Down']]};
+const OLD_WEEK={1:'A',2:'B',3:'A',4:'B',5:'C',6:'D',7:'C',8:'D'};
+const RENAMED={'Frontsquat':'Front- / Safety-Bar Squat'};
+function migrate(){
+  if(state.sv>=3) return false;
+  const sets={}, exnote={};
+  for(const s of Object.values(state.sets||{})){
+    const n=RENAMED[s.n]||s.n; const o=Object.assign({},s,{n});
+    sets[`${s.w}|${s.d}|${n}|${s.i}`]=o;
+  }
+  for(const [k,v] of Object.entries(state.exnote||{})){
+    const [w,d,e]=k.split('|'); const tab=OLD_V2[OLD_WEEK[w]]; const nm=tab&&tab[d]&&tab[d][e];
+    if(nm&&v) exnote[`${w}|${d}|${RENAMED[nm]||nm}`]=v;
+  }
+  state.sets=sets; state.exnote=exnote; state.sv=3; return true;
+}
+if(migrate()) lsSet(JSON.stringify(state));
+
 const profEmpty=()=>!state.profile.name.trim()&&!state.profile.num&&!state.profile.pos.trim();
 /* Beim ersten Start (Profil leer) zuerst Profil, sonst immer Training */
 let tab=profEmpty()?'prof':'train', W=state.ui.w||1, D=state.ui.d||0;
-if(!PLAN[W]) W=1; if(!PLAN[W][D]) D=0;
+if(W<1||W>24) W=1;
+if(phaseOf(W)!==state.phase) W=PHASES[state.phase-1].from;
+if(PLAN[W]&&!PLAN[W][D]) D=0;
 const firstRun=tab==='prof';
-const K=(w,d,e,i)=>`${w}|${d}|${e}|${i}`;
+const K=(w,d,n,i)=>`${w}|${d}|${n}|${i}`;
 const SK=(w,d)=>`${w}|${d}`;
-const EK=(w,d,e)=>`${w}|${d}|${e}`;
+const EK=(w,d,n)=>`${w}|${d}|${n}`;
 const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isNaN(x)?null:x};
 const fmt=x=>x==null?'':(Math.round(x*10)/10).toString().replace('.',',');
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -325,11 +394,12 @@ function tgt(x){
   if(x.k==='lift') return `${x.sets}×${x.reps==='Alle'?'alle (max.)':x.reps+(x.unit==='Sek.'?' s':'')}${x.rir!==''?' · RIR '+x.rir:''}`;
   return x.tgt||'';
 }
-function lastKg(name,w,d,e,i){
-  const cur=w*100000+d*1000+e*20+i; let best=-1,val=null;
+const ord=(w,d,i)=>(w*10+d)*100+i;
+function lastKg(name,w,d,i){
+  const cur=ord(w,d,i); let best=-1,val=null;
   for(const s of Object.values(state.sets)){
     if(s.n!==name||!(s.kg>0)||!s.done) continue;
-    const o=s.w*100000+s.d*1000+s.e*20+s.i;
+    const o=ord(s.w,s.d,s.i);
     if(o<cur&&o>best){best=o;val=s.kg;}
   }
   return val;
@@ -339,23 +409,27 @@ function lastCkg(name,w){
   return null;
 }
 function today(){const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
-function videoUrl(name){
-  if(VIDEOS[name]) return VIDEOS[name];
+function videoUrl(name,v){
+  if(v) return v;
   return 'https://www.youtube.com/results?search_query='+encodeURIComponent(name.replace(/\(.*?\)/g,'').replace(/[\/+]/g,' ').trim()+' exercise');
 }
 function whoText(){
   const p=state.profile; const parts=[];
   if(p.name) parts.push(p.name); if(p.num) parts.push('#'+p.num); if(p.pos) parts.push(p.pos);
-  return parts.length?parts.join(' · '):'Offseason · 8 Wochen';
+  return parts.length?parts.join(' · '):'Offseason · 24 Wochen';
 }
+const exOf=(w,d)=>PLAN[w]&&PLAN[w][d]?PLAN[w][d].ex:[];
+const findEx=(w,d,n)=>exOf(w,d).find(x=>x.n===n);
+const posOf=(w,d,n)=>{const i=exOf(w,d).findIndex(x=>x.n===n); return i<0?99:i;};
 
 /* ---------- Kopf ---------- */
 function renderCtrl(){
-  document.getElementById('ctrl').style.display=tab==='train'?'':'none';
+  const show=tab==='train'&&!!PLAN[W];
+  document.getElementById('ctrl').style.display=show?'':'none';
   document.getElementById('whoLine').textContent=whoText();
-  if(tab!=='train') return;
-  let h='';
-  for(let w=1;w<=8;w++) h+=`<button class="wk" data-w="${w}" aria-pressed="${w===W}" aria-label="Woche ${w}">${w}</button>`;
+  if(!show) return;
+  const f=PHASES[state.phase-1].from; let h='';
+  for(let w=f;w<f+8;w++) h+=`<button class="wk" data-w="${w}" aria-pressed="${w===W}" aria-label="Woche ${relWeek(w)}">${relWeek(w)}</button>`;
   document.getElementById('weeks').innerHTML=h;
   h='';
   PLAN[W].forEach((dy,i)=>{
@@ -367,11 +441,10 @@ function renderCtrl(){
 }
 
 /* ---------- Training ---------- */
-function doneIn(filter){return PLAN[W][D].ex.reduce((acc,x,e)=>{if(!filter(x))return acc;for(let i=0;i<nRows(x);i++){acc[1]++;const s=state.sets[K(W,D,e,i)];if(s&&s.done)acc[0]++;}return acc;},[0,0]);}
+function doneIn(filter){return exOf(W,D).reduce((acc,x)=>{if(!filter(x))return acc;for(let i=0;i<nRows(x);i++){acc[1]++;const s=state.sets[K(W,D,x.n,i)];if(s&&s.done)acc[0]++;}return acc;},[0,0]);}
 function countDone(){
-  const ex=PLAN[W][D].ex;
+  const ex=exOf(W,D);
   if(!ex.some(x=>x.k==='cardio')) return doneIn(()=>true);
-  /* Tag 3: Zirkel ODER Cardio zählen – je nachdem, was gemacht wurde */
   return satMode()==='cardio'?doneIn(x=>x.k==='cardio'):doneIn(x=>x.k!=='cardio');
 }
 /* Tag 3: Auswahl Kraftzirkel / Cardio per Drop-down (pro Woche gespeichert) */
@@ -381,57 +454,64 @@ function satMode(){
   return c[0]>0&&z[0]===0?'cardio':'zirkel';
 }
 const PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4" fill="currentColor"/><path d="M10 9.2v5.6l5-2.8z" fill="#fff"/></svg>';
-const vidBtn=(nm,small)=>`<a class="ib vid${small?' sm':''}" href="${esc(videoUrl(nm))}" target="_blank" rel="noopener noreferrer" aria-label="Video zu ${esc(nm)} öffnen">${PLAY}</a>`;
-function liftRow(e,i){
-  const x=PLAN[W][D].ex[e];
-  const s=state.sets[K(W,D,e,i)]||{};
-  const pk=lastKg(x.n,W,D,e,i);
-  return `<div class="set${s.done?' done':''}" data-e="${e}" data-i="${i}"><span class="n">${i+1}</span>
+const vidBtn=(nm,v,small)=>`<a class="ib vid${small?' sm':''}" href="${esc(videoUrl(nm,v))}" target="_blank" rel="noopener noreferrer" aria-label="Video zu ${esc(nm)} öffnen">${PLAY}</a>`;
+function liftRow(x,i){
+  const s=state.sets[K(W,D,x.n,i)]||{};
+  const pk=lastKg(x.n,W,D,i);
+  return `<div class="set${s.done?' done':''}" data-n="${esc(x.n)}" data-i="${i}"><span class="n">${i+1}</span>
     <input type="number" inputmode="decimal" step="0.5" min="0" class="kg" aria-label="${esc(x.n)} Satz ${i+1} Gewicht" value="${s.kg!=null?s.kg:''}" placeholder="${pk!=null?fmt(pk):'kg'}">
     <input type="number" inputmode="decimal" step="any" min="0" class="rp" aria-label="${esc(x.n)} Satz ${i+1} ${x.unit}" value="${s.reps!=null?s.reps:''}" placeholder="${esc(ph(x))}">
     <button class="chk" aria-label="Satz ${i+1} erledigt" aria-pressed="${!!s.done}">${s.done?'✓':'○'}</button></div>`;
 }
-function checkRow(e,i,label,withVal){
-  const x=PLAN[W][D].ex[e]; const s=state.sets[K(W,D,e,i)]||{};
+function checkRow(x,i,label,withVal){
+  const s=state.sets[K(W,D,x.n,i)]||{};
   const val=withVal?`<input type="number" inputmode="decimal" step="any" min="0" class="rp" aria-label="${esc(x.n)} ${label} ${x.unit}" value="${s.reps!=null?s.reps:''}" placeholder="${esc(ph(x))}">`:'<span></span>';
-  return `<div class="set cr${s.done?' done':''}" data-e="${e}" data-i="${i}"><span class="rlab">${esc(label)}</span>${val}
+  return `<div class="set cr${s.done?' done':''}" data-n="${esc(x.n)}" data-i="${i}"><span class="rlab">${esc(label)}</span>${val}
     <button class="chk" aria-label="${esc(label)} erledigt" aria-pressed="${!!s.done}">${s.done?'✓':'○'}</button></div>`;
 }
-const noteInput=e=>`<input type="text" class="exnote" data-e="${e}" aria-label="Notiz zu ${esc(PLAN[W][D].ex[e].n)}" placeholder="Notiz zur Übung" value="${esc(state.exnote[EK(W,D,e)]||'')}">`;
+const noteInput=x=>`<input type="text" class="exnote" data-n="${esc(x.n)}" aria-label="Notiz zu ${esc(x.n)}" placeholder="Notiz zur Übung" value="${esc(state.exnote[EK(W,D,x.n)]||'')}">`;
+function renderPending(){
+  const p=PHASES[state.phase-1];
+  document.getElementById('main').innerHTML=`<div class="dtitle"><h2>${esc(p.name)}</h2></div>
+  <p class="sub">Woche ${p.from}–${p.from+7} von 24</p>
+  <div class="card pend"><h3>Noch nicht freigeschaltet</h3><p>Die Übungen für ${esc(p.name)} werden gerade von den Coaches ausgearbeitet und erscheinen hier automatisch nach dem nächsten Update.</p><p>Bis dahin bitte im Reiter <b>Profil</b> die aktuelle Phase auswählen. Deine bisherigen Einträge bleiben erhalten.</p><button class="btn" id="goProf2">Zum Profil</button></div>`;
+}
 function renderTrain(){
+  if(!PLAN[W]) return renderPending();
   const dy=PLAN[W][D]; const [dn,t]=countDone();
   let h='';
   if(profEmpty()) h+='<button class="nudge" id="goProf">Einmalig im Reiter Profil Name, Trikotnummer und Position eintragen.</button>';
   h+=`<div class="dtitle"><h2>${esc(dy.t)}</h2><span class="prog" id="prog">${dn} / ${t}</span></div>`;
-  h+=`<p class="sub">${esc(PLAN_NAME(W))} · Woche ${W} · ${esc(dy.desc)}</p>`;
+  h+=`<p class="sub">${esc(PHASES[phaseOf(W)-1].name)} · ${esc(BLOCK_NAME[W]||'')} · Woche ${relWeek(W)} · ${esc(dy.desc)}</p>`;
   let lastSt='';
   const hasSat=dy.ex.some(x=>x.k==='cardio'), mode=hasSat?satMode():null;
   if(hasSat) h+=`<label class="selwrap"><span>Training am Samstag</span><select id="satSel" aria-label="Training am Samstag auswählen"><option value="zirkel"${mode==='zirkel'?' selected':''}>Kraftzirkel</option><option value="cardio"${mode==='cardio'?' selected':''}>Cardio</option></select></label>`;
-  dy.ex.forEach((x,e)=>{
+  dy.ex.forEach(x=>{
     if(hasSat&&((mode==='cardio')!==(x.k==='cardio'))) return;
     if(x.st!==lastSt){ h+=`<div class="st">${esc(x.k==='cardio'?'Cardio':x.st)}</div>`; lastSt=x.st; }
     if(x.k==='lift'){
-      h+=`<section class="ex${x.st==='Mainlift'?' mainex':''}"><div class="exh"><div><b>${esc(x.n)}</b><span class="tgt">${esc(tgt(x))}</span>${x.note?`<span class="xnote">${esc(x.note)}</span>`:''}</div><div class="acts">${vidBtn(x.n)}</div></div>`;
+      h+=`<section class="ex${x.st==='Mainlift'?' mainex':''}"><div class="exh"><div><b>${esc(x.n)}</b><span class="tgt">${esc(tgt(x))}</span>${x.note?`<span class="xnote">${esc(x.note)}</span>`:''}</div><div class="acts">${vidBtn(x.n,x.v)}</div></div>`;
       h+=`<div class="lbl"><span></span><span>kg</span><span>${esc(x.unit)}</span><span></span></div>`;
-      for(let i=0;i<x.sets;i++) h+=liftRow(e,i);
-      h+=noteInput(e)+'</section>';
+      for(let i=0;i<x.sets;i++) h+=liftRow(x,i);
+      h+=noteInput(x)+'</section>';
     } else if(x.k==='warm'||x.k==='circ'){
       const circ=x.k==='circ';
       h+=`<section class="ex${circ?' circ':' warm'}"><div class="exh"><div><b>${esc(circ?x.n:x.rounds+' Runden')}</b><span class="tgt">${circ?'4–6 Runden · 30 s Belastung je Station':'alle Übungen nacheinander, dann nächste Runde'}</span></div></div><div class="items">`;
-      x.items.forEach((it,j)=>{
+      x.items.forEach(it=>{
         const ck=`${W}|${D}|${it[0]}`, cv=state.ckg[ck];
         const sug=circ&&cv==null?lastCkg(it[0],W):null;
-        h+=`<div class="item"><div class="itx"><b>${esc(it[0])}</b><span class="tgt">${esc(it[1])}${circ?' · Pause '+esc(it[2]):''}</span>${(circ?it[3]:it[2])?`<span class="xnote">${esc(circ?it[3]:it[2])}</span>`:''}</div>`+
+        const note=circ?it[3]:it[2], vid=circ?it[4]:it[3];
+        h+=`<div class="item"><div class="itx"><b>${esc(it[0])}</b><span class="tgt">${esc(it[1])}${circ?' · Pause '+esc(it[2]):''}</span>${note?`<span class="xnote">${esc(note)}</span>`:''}</div>`+
           (circ?`<input type="number" inputmode="decimal" step="0.5" min="0" class="ckg" data-c="${esc(it[0])}" aria-label="${esc(it[0])} Gewicht in kg" value="${cv!=null?cv:''}" placeholder="${sug!=null?fmt(sug):'kg'}">`:'')+
-          vidBtn(it[0],true)+'</div>';
+          vidBtn(it[0],vid,true)+'</div>';
       });
-      h+=`</div><div class="rl">${circ?'Runden abhaken':'Runden abhaken'}</div>`;
-      for(let i=0;i<x.rounds;i++) h+=checkRow(e,i,'Runde '+(i+1)+(circ&&i>=4?' (optional)':''),false);
-      if(circ) h+=noteInput(e);
+      h+=`</div><div class="rl">Runden abhaken</div>`;
+      for(let i=0;i<x.rounds;i++) h+=checkRow(x,i,'Runde '+(i+1)+(circ&&i>=4?' (optional)':''),false);
+      if(circ) h+=noteInput(x);
       h+='</section>';
     } else if(x.k==='cardio'){
       h+=`<section class="ex"><div class="exh"><div><b>${esc(x.n)}</b><span class="tgt">${esc(x.tgt)}</span>${x.note?`<span class="xnote">${esc(x.note)}</span>`:''}</div></div>`;
-      for(let i=0;i<x.sets;i++) h+=checkRow(e,i,x.sets>1?'Intervall '+(i+1):'Erledigt',true);
+      for(let i=0;i<x.sets;i++) h+=checkRow(x,i,x.sets>1?'Intervall '+(i+1):'Erledigt',true);
       h+='</section>';
     }
   });
@@ -445,7 +525,7 @@ function renderTrain(){
 
 /* ---------- Verlauf ---------- */
 function stats(){
-  const wk={}; for(let w=1;w<=8;w++) wk[w]={sets:0,vol:0,e1:{},feel:[],days:new Set()};
+  const wk={}; for(let w=1;w<=24;w++) wk[w]={sets:0,vol:0,e1:{},feel:[],days:new Set()};
   for(const s of Object.values(state.sets)){
     if(!s.done) continue; const o=wk[s.w]; if(!o) continue;
     o.days.add(s.d);
@@ -458,61 +538,63 @@ function stats(){
   return wk;
 }
 function renderHist(){
-  const wk=stats(); const p=state.profile; let h='';
+  const wk=stats(); const p=state.profile; const ph1=PHASES[state.phase-1]; const f=ph1.from; let h='';
   h+=`<div class="card"><div class="player"><div class="num">${p.num?esc(p.num):'–'}</div><div><b>${esc(p.name||'Name noch offen')}</b><span>${esc(p.pos||'Position noch offen')}</span></div></div></div>`;
-  h+=`<div class="card"><h3>Wochenübersicht</h3><div class="scroll"><table><tr><th>Woche</th><th>Tage</th><th>Sätze</th><th>Vol. kg</th><th>Ø Bef.</th></tr>`;
-  for(let w=1;w<=8;w++){const o=wk[w];const avg=o.feel.length?o.feel.reduce((a,b)=>a+b,0)/o.feel.length:null;
-    h+=`<tr><td>W${w}</td><td>${o.days.size?o.days.size+' / 3':'–'}</td><td>${o.sets||'–'}</td><td>${o.vol?Math.round(o.vol).toLocaleString('de-DE'):'–'}</td><td>${avg!=null?fmt(avg):'–'}</td></tr>`;}
-  h+='</table></div><p class="small">Sätze und Volumen zählen Mainlift, Skills und Hypertrophie (ohne Warm-up, Zirkel und Cardio).</p></div>';
+  h+=`<div class="card"><h3>Wochenübersicht · ${esc(ph1.name)}</h3><div class="scroll"><table><tr><th>Woche</th><th>Tage</th><th>Sätze</th><th>Vol. kg</th><th>Ø Bef.</th></tr>`;
+  for(let w=f;w<f+8;w++){const o=wk[w];const avg=o.feel.length?o.feel.reduce((a,b)=>a+b,0)/o.feel.length:null;
+    h+=`<tr><td>W${relWeek(w)}</td><td>${o.days.size?o.days.size+' / 3':'–'}</td><td>${o.sets||'–'}</td><td>${o.vol?Math.round(o.vol).toLocaleString('de-DE'):'–'}</td><td>${avg!=null?fmt(avg):'–'}</td></tr>`;}
+  h+='</table></div><p class="small">Sätze und Volumen zählen Mainlift, Skills und Hypertrophie (ohne Warm-up, Zirkel und Cardio). Die Phase wechselst du im Profil.</p></div>';
   const vmax=Math.max(...Object.values(wk).map(o=>o.vol));
   h+='<div class="card"><h3>Volumen pro Woche</h3>';
-  if(vmax>0){for(let w=1;w<=8;w++){const v=wk[w].vol; if(!v) continue; h+=`<div class="bar"><span>W${w}</span><i style="width:${Math.max(v/vmax*100,3)}%"></i><span>${(v/1000).toLocaleString('de-DE',{maximumFractionDigits:1})} t</span></div>`;}}
+  if(vmax>0){for(let w=1;w<=24;w++){const v=wk[w].vol; if(!v) continue; h+=`<div class="bar"><span>${barLab(w)}</span><i style="width:${Math.max(v/vmax*100,3)}%"></i><span>${(v/1000).toLocaleString('de-DE',{maximumFractionDigits:1})} t</span></div>`;}}
   else h+='<div class="empty">Noch keine Sätze mit Gewicht.</div>';
   h+='<p class="small">Volumen = Gewicht × Wiederholungen aller abgehakten Sätze.</p></div>';
   h+='<div class="card"><h3>Körperbefinden pro Woche (Ø, 1–5)</h3>';
   let any=false;
-  for(let w=1;w<=8;w++){const o=wk[w]; if(!o.feel.length) continue; any=true; const a=o.feel.reduce((x,y)=>x+y,0)/o.feel.length;
-    h+=`<div class="bar g"><span>W${w}</span><i style="width:${Math.max(a/5*100,3)}%"></i><span>${fmt(a)}</span></div>`;}
+  for(let w=1;w<=24;w++){const o=wk[w]; if(!o.feel.length) continue; any=true; const a=o.feel.reduce((x,y)=>x+y,0)/o.feel.length;
+    h+=`<div class="bar g"><span>${barLab(w)}</span><i style="width:${Math.max(a/5*100,3)}%"></i><span>${fmt(a)}</span></div>`;}
   if(!any) h+='<div class="empty">Noch keine Einträge.</div>';
   h+='</div>';
   h+='<div class="card"><h3>Geschätztes 1RM Mainlifts (kg)</h3>';
   let anyL=false;
   LIFTS.forEach(n=>{
-    const vals=[];for(let w=1;w<=8;w++) if(wk[w].e1[n]!=null) vals.push([w,wk[w].e1[n]]);
+    const vals=[];for(let w=1;w<=24;w++) if(wk[w].e1[n]!=null) vals.push([w,wk[w].e1[n]]);
     if(!vals.length) return; anyL=true; const mx=Math.max(...vals.map(v=>v[1]));
     h+=`<div class="liftn">${esc(n)}</div>`;
-    vals.forEach(([w,v])=>{h+=`<div class="bar"><span>W${w}</span><i style="width:${Math.max(v/mx*100,3)}%"></i><span>${fmt(v)}</span></div>`;});
+    vals.forEach(([w,v])=>{h+=`<div class="bar"><span>${barLab(w)}</span><i style="width:${Math.max(v/mx*100,3)}%"></i><span>${fmt(v)}</span></div>`;});
   });
   if(!anyL) h+='<div class="empty">Noch keine Sätze der Mainlifts (bis 12 Wdh.).</div>';
-  h+='<p class="small">Schätzung nach Epley, nur zum Vergleich von Woche zu Woche.</p></div>';
-  h+=`<button class="btn" id="exp">Log als CSV an die Coaches senden</button><p class="small">Auf dem Handy öffnet sich das Teilen-Menü (z. B. WhatsApp oder Mail), sonst wird die Datei gespeichert. Die Datei enthält Name, Trikotnummer und Position und lässt sich in Excel oder Google Sheets öffnen.</p>`;
+  h+='<p class="small">Schätzung nach Epley, nur zum Vergleich von Woche zu Woche. P1 W3 = Phase 1, Woche 3.</p></div>';
+  h+=`<button class="btn" id="exp">Log als CSV an die Coaches senden</button><p class="small">Auf dem Handy öffnet sich das Teilen-Menü (z. B. WhatsApp oder Mail), sonst wird die Datei gespeichert. Die Datei enthält alle Phasen, Name, Trikotnummer und Position und lässt sich in Excel oder Google Sheets öffnen.</p>`;
   h+=storageOk?'<p class="small">Deine Einträge bleiben nur auf diesem Gerät und in diesem Browser gespeichert.</p>':'<p class="nudge warnbox">Achtung: In dieser Ansicht können keine Daten gespeichert werden. Öffne die Seite bitte in Safari oder Chrome statt in der Vorschau.</p>';
   document.getElementById('main').innerHTML=h;
 }
+const barLab=w=>`P${phaseOf(w)} W${relWeek(w)}`;
 function buildCsv(){
   const p=state.profile;
-  const rows=[['Name','Trikotnummer','Position','Datum','Woche','Plan','Tag','Einheit','Station','Übung','Satz/Runde','Gewicht (kg)','Wert','Einheit Wert','Notiz zur Übung','Körperbefinden (1-5)','Notiz zur Einheit']];
+  const rows=[['Name','Trikotnummer','Position','Datum','Phase','Woche (Phase)','Gesamtwoche','Plan','Tag','Einheit','Station','Übung','Satz/Runde','Gewicht (kg)','Wert','Einheit Wert','Notiz zur Übung','Körperbefinden (1-5)','Notiz zur Einheit']];
   const out=[];
-  const base=(w,d)=>{const sk=SK(w,d);return [p.name,p.num,p.pos,state.date[sk]||'',w,PLAN_NAME(w),DAYS[d],PLAN[w][d].t];};
+  const base=(w,d)=>{const sk=SK(w,d);return [p.name,p.num,p.pos,state.date[sk]||'',PHASES[phaseOf(w)-1].name,relWeek(w),w,BLOCK_NAME[w]||'',DAYS[d],PLAN[w]&&PLAN[w][d]?PLAN[w][d].t:''];};
   const tail=(w,d,note)=>{const sk=SK(w,d);return [note||'',state.feel[sk]!=null?state.feel[sk]:'',state.note[sk]||''];};
   const used=new Set();
   for(const s of Object.values(state.sets)){
-    if(!s.done||!PLAN[s.w]||!PLAN[s.w][s.d]) continue; const x=PLAN[s.w][s.d].ex[s.e]; if(!x) continue;
+    if(!s.done) continue; const x=findEx(s.w,s.d,s.n);
     used.add(SK(s.w,s.d));
-    const lab=x.k==='lift'?s.i+1:(x.k==='cardio'&&x.sets===1?'':'Runde '+(s.i+1));
-    out.push([s.w*100000+s.d*1000+s.e*20+s.i,[...base(s.w,s.d),x.st,x.k==='warm'?'Warm-up (alle Übungen)':x.n,lab,s.kg!=null?fmt(s.kg):'',s.reps!=null?fmt(s.reps):'',x.k==='lift'||x.k==='cardio'?x.unit:'',...tail(s.w,s.d,state.exnote[EK(s.w,s.d,s.e)])]]);
+    const k=x?x.k:s.k;
+    const lab=k==='lift'?s.i+1:(k==='cardio'&&x&&x.sets===1?'':'Runde '+(s.i+1));
+    out.push([ord(s.w,s.d,0)*100+posOf(s.w,s.d,s.n)*20+s.i,[...base(s.w,s.d),x?x.st:'',k==='warm'?'Warm-up (alle Übungen)':s.n+(x?'':' (frühere Planversion)'),lab,s.kg!=null?fmt(s.kg):'',s.reps!=null?fmt(s.reps):'',x&&(x.k==='lift'||x.k==='cardio')?x.unit:'',...tail(s.w,s.d,state.exnote[EK(s.w,s.d,s.n)])]]);
   }
   for(const [k,v] of Object.entries(state.ckg)){
-    if(v==null) continue; const [w,d,nm]=k.split('|'); const ww=+w, dd=+d; if(!PLAN[ww]) continue;
-    const e=PLAN[ww][dd].ex.findIndex(x=>x.k==='circ');
-    out.push([ww*100000+dd*1000+e*20+19,[...base(ww,dd),'4-6 Runden Zirkel',nm,'Gewicht Station',fmt(v),'','',...tail(ww,dd,'')]]);
+    if(v==null) continue; const [w,d,nm]=k.split('|'); const ww=+w, dd=+d;
+    const c=exOf(ww,dd).find(x=>x.k==='circ');
+    out.push([ord(ww,dd,0)*100+posOf(ww,dd,c?c.n:'')*20+19,[...base(ww,dd),'4-6 Runden Zirkel',nm,'Gewicht Station',fmt(v),'','',...tail(ww,dd,'')]]);
     used.add(SK(ww,dd));
   }
-  Object.keys(state.exnote).forEach(k=>{const [w,d,e]=k.split('|').map(Number); if(!state.exnote[k]||!PLAN[w]||!PLAN[w][d]||!PLAN[w][d].ex[e]) return;
-    if(Object.values(state.sets).some(s=>s.done&&s.w===w&&s.d===d&&s.e===e)) return;
-    const x=PLAN[w][d].ex[e]; out.push([w*100000+d*1000+e*20,[...base(w,d),x.st,x.n,'','','','',...tail(w,d,state.exnote[k])]]); used.add(SK(w,d));});
-  Object.keys(Object.assign({},state.feel,state.note)).forEach(sk=>{if(used.has(sk))return; const [w,d]=sk.split('|').map(Number); if(!PLAN[w]||!PLAN[w][d])return;
-    out.push([w*100000+d*1000,[...base(w,d),'','','','','','',...tail(w,d,'')]]);});
+  Object.keys(state.exnote).forEach(k=>{const [w,d,n]=k.split('|'); const ww=+w, dd=+d; if(!state.exnote[k]) return;
+    if(Object.values(state.sets).some(s=>s.done&&s.w===ww&&s.d===dd&&s.n===n)) return;
+    const x=findEx(ww,dd,n); out.push([ord(ww,dd,0)*100+posOf(ww,dd,n)*20,[...base(ww,dd),x?x.st:'',n,'','','','',...tail(ww,dd,state.exnote[k])]]); used.add(SK(ww,dd));});
+  Object.keys(Object.assign({},state.feel,state.note)).forEach(sk=>{if(used.has(sk))return; const [w,d]=sk.split('|').map(Number);
+    out.push([ord(w,d,0)*100,[...base(w,d),'','','','','','',...tail(w,d,'')]]);});
   out.sort((a,b)=>a[0]-b[0]).forEach(r=>rows.push(r[1]));
   return '﻿'+rows.map(r=>r.map(c=>{c=String(c==null?'':c);return /[;"\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(';')).join('\r\n');
 }
@@ -536,34 +618,44 @@ async function exportCsv(){
 /* ---------- Profil ---------- */
 function renderProf(){
   const p=state.profile;
+  const known=POS.includes(p.pos), other=!!p.pos&&!known;
+  const posSel=`<select id="pPosSel" aria-label="Position">
+      <option value=""${!p.pos?' selected':''}>Bitte auswählen</option>
+      ${POS.map(x=>`<option value="${esc(x)}"${p.pos===x?' selected':''}>${esc(x)}</option>`).join('')}
+      <option value="__other"${other?' selected':''}>Andere Position …</option></select>`;
+  const phSel=`<select id="pPhase" aria-label="Trainingsphase">${PHASES.map(x=>`<option value="${x.id}"${state.phase===x.id?' selected':''}>${esc(x.name)} · Woche ${x.from}–${x.from+7}${phaseReady(x.id)?'':' (in Planung)'}</option>`).join('')}</select>`;
   document.getElementById('main').innerHTML=`<div class="dtitle"><h2>${firstRun&&profEmpty()?'Willkommen, Alligator!':'Profil'}</h2></div>
   <p class="sub">Einmalig eintragen. Die Angaben erscheinen im Verlauf und in jeder Zeile des CSV-Exports.</p>
   <div class="card">
     <label class="field"><span>Name</span><input type="text" id="pName" autocomplete="name" value="${esc(p.name)}" placeholder="Vor- und Nachname"></label>
     <label class="field"><span>Trikotnummer</span><input type="text" id="pNum" inputmode="numeric" maxlength="3" value="${esc(p.num)}" placeholder="z. B. 52"></label>
-    <label class="field" style="margin-bottom:0"><span>Position</span><input type="text" id="pPos" list="posList" value="${esc(p.pos)}" placeholder="Auswählen oder selbst eintragen"></label>
-    <datalist id="posList">${POS.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    <label class="field"${other?'':' style="margin-bottom:0"'}><span>Position</span>${posSel}</label>
+    <label class="field" id="posOtherWrap" style="margin-bottom:0${other?'':';display:none'}"><span>Andere Position</span><input type="text" id="pPosOther" value="${esc(other?p.pos:'')}" placeholder="Position eintragen"></label>
+  </div>
+  <div class="card">
+    <label class="field" style="margin-bottom:0"><span>Trainingsphase</span>${phSel}</label>
+    <p class="small">24 Wochen in 3 Phasen à 8 Wochen. Der Reiter Training zeigt die gewählte Phase. Deine Einträge aus allen Phasen bleiben gespeichert.</p>
   </div>
   <button class="btn" id="toTrain">Zum Training</button>
   <div class="card how">
     <h3>So funktioniert der Plan</h3>
     <p><b>3 Tage pro Woche:</b> Mo Lower Body, Do Upper Body, Sa Kraftzirkel oder Cardio (Auswahl per Drop-down).</p>
-    <p><b>Wochen:</b> Woche 1–4 Legoman Powerbuilding 1, Woche 5–8 Legoman Powerbuilding 2. Die Varianten wechseln wöchentlich: ungerade Wochen Strong Hips / Push it, gerade Wochen Strong Legs / Pull it.</p>
+    <p><b>Phase 1 (Woche 1–8):</b> Woche 1–4 Legoman Powerbuilding 1, Woche 5–8 Legoman Powerbuilding 2. Die Varianten wechseln wöchentlich: ungerade Wochen Strong Hips / Push it, gerade Wochen Strong Legs / Pull it. Phase 2 und 3 folgen.</p>
     <p><b>Ablauf jeder Einheit:</b> Warm-up → Mainlift → Skills → Hypertrophie.</p>
     <p><b>RIR</b> = Wiederholungen in Reserve. RIR 2 heißt: aufhören, wenn noch 2 saubere Wiederholungen gegangen wären. RIR 0 heißt: so viele wie möglich.</p>
-    <p><b>Bedienung:</b> kg und Wdh. eintragen und den Kreis abhaken. Wer nichts einträgt, übernimmt beim Abhaken den Vorschlag (letztes Gewicht). ▶ öffnet ein Video zur Übung.</p>
+    <p><b>Bedienung:</b> kg und Wdh. eintragen und den Kreis abhaken. Wer nichts einträgt, übernimmt beim Abhaken den Vorschlag (letztes Gewicht). ▶ öffnet das Video zur Übung.</p>
     <p class="small ver" id="verLine">Version ${APP_VERSION}</p>
   </div>`;
   showSwVersion();
 }
-
 /* Version des Offline-Speichers (Service Worker) anzeigen */
 async function showSwVersion(){
   try{
     if(!window.caches) return;
     const keys=(await caches.keys()).filter(k=>k.startsWith('alligators-offseason-'));
     const el=document.getElementById('verLine'); if(!el||!keys.length) return;
-    const sw=keys.sort().pop().replace('alligators-offseason-','');
+    const vs=keys.map(k=>k.replace('alligators-offseason-','')).sort((a,b)=>(parseInt(a.slice(1))||0)-(parseInt(b.slice(1))||0));
+    const sw=vs.pop();
     el.textContent='Version '+APP_VERSION+(sw===APP_VERSION?' · offline gespeichert':' · Offline-Speicher '+sw+' (App schließen und neu öffnen)');
   }catch(e){}
 }
@@ -583,9 +675,9 @@ document.getElementById('weeks').addEventListener('click',ev=>{const b=ev.target
 document.getElementById('days').addEventListener('click',ev=>{const b=ev.target.closest('.day');if(!b)return;D=+b.dataset.d;save();render();window.scrollTo(0,0);});
 const mainEl=document.getElementById('main');
 function setObj(row){
-  const e=+row.dataset.e,i=+row.dataset.i,key=K(W,D,e,i);
-  const x=PLAN[W][D].ex[e];
-  if(!state.sets[key]) state.sets[key]={n:x.n,k:x.k,w:W,d:D,e,i,kg:null,reps:null,done:false};
+  const n=row.dataset.n,i=+row.dataset.i,key=K(W,D,n,i);
+  const x=findEx(W,D,n);
+  if(!state.sets[key]) state.sets[key]={n,k:x?x.k:'lift',w:W,d:D,i,kg:null,reps:null,done:false};
   return state.sets[key];
 }
 const whoUpd=()=>{document.getElementById('whoLine').textContent=whoText();};
@@ -594,8 +686,8 @@ mainEl.addEventListener('input',ev=>{
   if(t.id==='note'){state.note[SK(W,D)]=t.value;save();return;}
   if(t.id==='pName'){state.profile.name=t.value;save();whoUpd();return;}
   if(t.id==='pNum'){state.profile.num=t.value.replace(/[^0-9]/g,'');if(t.value!==state.profile.num)t.value=state.profile.num;save();whoUpd();return;}
-  if(t.id==='pPos'){state.profile.pos=t.value;save();whoUpd();return;}
-  if(t.classList.contains('exnote')){state.exnote[EK(W,D,+t.dataset.e)]=t.value;save();return;}
+  if(t.id==='pPosOther'){state.profile.pos=t.value;save();whoUpd();return;}
+  if(t.classList.contains('exnote')){state.exnote[EK(W,D,t.dataset.n)]=t.value;save();return;}
   if(t.classList.contains('ckg')){const k=`${W}|${D}|${t.dataset.c}`; const v=num(t.value); if(v==null) delete state.ckg[k]; else state.ckg[k]=v; if(!state.date[SK(W,D)]) state.date[SK(W,D)]=today(); save();return;}
   const row=t.closest('.set'); if(!row) return;
   const s=setObj(row);
@@ -603,10 +695,20 @@ mainEl.addEventListener('input',ev=>{
   save();
 });
 mainEl.addEventListener('change',ev=>{
-  if(ev.target.id==='satSel'){state.sat=state.sat||{}; state.sat[SK(W,D)]=ev.target.value; save(); render();}
+  const t=ev.target;
+  if(t.id==='satSel'){state.sat=state.sat||{}; state.sat[SK(W,D)]=t.value; save(); render(); return;}
+  if(t.id==='pPosSel'){
+    const wrap=document.getElementById('posOtherWrap'), inp=document.getElementById('pPosOther');
+    if(t.value==='__other'){ wrap.style.display=''; state.profile.pos=inp.value.trim(); inp.focus(); }
+    else { wrap.style.display='none'; state.profile.pos=t.value; }
+    save(); whoUpd(); return;
+  }
+  if(t.id==='pPhase'){
+    state.phase=+t.value; W=PHASES[state.phase-1].from; D=0; save(); return;
+  }
 });
 mainEl.addEventListener('click',ev=>{
-  if(ev.target.id==='goProf'){go('prof');return;}
+  if(ev.target.id==='goProf'||ev.target.id==='goProf2'){go('prof');return;}
   if(ev.target.id==='toTrain'){go('train');return;}
   const c=ev.target.closest('.chk');
   if(c){

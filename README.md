@@ -1,7 +1,7 @@
 # Leonberg Alligators – Offseason Team-Plan
 
 Trainingsplan mit Trainingslog für die Offseason der Leonberg Alligators (American Football).
-8 Wochen · 3 Einheiten pro Woche · Legoman Powerbuilding 1 & 2
+24 Wochen in 3 Phasen · 3 Einheiten pro Woche · Phase 1: Legoman Powerbuilding 1 & 2
 
 **Zur Seite:** https://kimbo41.github.io/Alligators-Offseason/
 
@@ -22,7 +22,8 @@ Trainingsplan mit Trainingslog für die Offseason der Leonberg Alligators (Ameri
 | Donnerstag | Upper Body – Push it / Pull it (wöchentlich im Wechsel) |
 | Samstag | Kraftzirkel oder Cardio |
 
-Woche 1–4: Legoman Powerbuilding 1 · Woche 5–8: Legoman Powerbuilding 2
+Phase 1 (Woche 1–8): Woche 1–4 Legoman Powerbuilding 1 · Woche 5–8 Legoman Powerbuilding 2
+Phase 2 (Woche 9–16) und Phase 3 (Woche 17–24) folgen. Die Phase wird im Profil ausgewählt.
 
 ## Funktionen
 
